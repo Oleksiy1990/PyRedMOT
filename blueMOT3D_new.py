@@ -78,21 +78,18 @@ x_shifts = np.linspace(0,13.86e-3,5)
 y_shifts = np.linspace(0,24e-3,5)
 initx = -init_rad*np.sin(init_angle)+x_shifts
 inity = -init_rad*np.cos(init_angle)+y_shifts
+inits_pos_1 = np.array(list(itertools.product(initx,[inity[0]],initz)))
+inits_pos_2 = np.array(list(itertools.product([initx[0]],inity[1:],initz)))
+inits_pos = np.concatenate((inits_pos_1,inits_pos_2))
 
-#print(initx,"\n",inity,"\n",initz)
 
 init_speed_xy = 30 #m/s
 vel_angle = np.linspace(25,35,5) #deg
 initvx = init_speed_xy*np.sin(vel_angle*np.pi/180)
 initvy = init_speed_xy*np.cos(vel_angle*np.pi/180)
 initvz = np.linspace(0,2,4) 
-
-inits_pos_1 = np.array(list(itertools.product(initx,[inity[0]],initz)))
-inits_pos_2 = np.array(list(itertools.product([initx[0]],inity[1:],initz)))
-inits_pos = np.concatenate((inits_pos_1,inits_pos_2))
-print(inits_pos.shape)
 inits_vel = np.array([[init_speed_xy*np.sin(angle*np.pi/180),init_speed_xy*np.cos(angle*np.pi/180),vz] for angle in vel_angle for vz in initvz])
-print(inits_vel.shape)
+
 
 inits = np.array([[p[0],v[0],p[1],v[1],p[2],v[2]] for p in inits_pos for v in inits_vel])
 print(inits.shape)
@@ -103,7 +100,6 @@ final_pos_captured = []
 final_pos_lost = []
 weird = []
 
-#inits = (initx,initvx,inity,initvy,initz,initvz)
 for num,ic in enumerate(inits):
 	print("Solving ",num)
 	solution_blue = odeint(diffeqs_blue, ic, t, args=(parameters_blue,),mxstep=10**8)
@@ -201,25 +197,29 @@ initialconds_red = [(q[0],v[0],q[1],v[0],q[2],v[0]) for q in total_positions for
 # print(len(initialconds_red))
 # sys.exit(0)
 
-class Coords_and_vel(tables.IsDescription):
-    time = tables.Float64Col()
-    x_pos = tables.Float64Col()   
-    vx = tables.Float64Col()
-    y_pos = tables.Float64Col()
-    vy = tables.Float64Col()
-    z_pos = tables.Float64Col()
-    vz = tables.Float64Col()
-    # idnumber  = Int64Col()      # Signed 64-bit integer
-    # ADCcount  = UInt16Col()     # Unsigned short integer
-    # TDCcount  = UInt8Col()      # unsigned byte
-    # grid_i    = Int32Col()      # 32-bit integer
-    # grid_j    = Int32Col()      # 32-bit integer
-    # pressure  = Float32Col()    # float  (single-precision)
-    # energy    = Float64Col()    # double (double-precision)
+class Results(tables.IsDescription):
+    x_init = tables.Float64Col()   
+    vx_init = tables.Float64Col()
+    y_init = tables.Float64Col()
+    vy_init = tables.Float64Col()
+    z_init = tables.Float64Col()
+    vz_init = tables.Float64Col()
+    x_final = tables.Float64Col()   
+    vx_final = tables.Float64Col()
+    y_final = tables.Float64Col()
+    vy_final = tables.Float64Col()
+    z_final = tables.Float64Col()
+    vz_final = tables.Float64Col()
+   
 
 class Detunings(tables.IsDescription):
     detun = tables.Float64Col()
-    
+    laserPowerX = tables.Float64Col()
+    laserPowerY = tables.Float64Col()
+    laserPowerZ = tables.Float64Col() 
+    beamWaistRadX = tables.Float64Col()
+    beamWaistRadY = tables.Float64Col()
+    beamWaistRadZ = tables.Float64Col()
 
 file_save = tables.open_file("C:/Users/Oleksiy/Desktop/SimulationResults/redMOT/UnifPowerUnifWaistComb%.i.hdf5"%num_redCombLines,mode="a",title= "Red MOT simulation, %.i comb"%num_redCombLines)
 grp_grad = file_save.create_group("/","grad%.3f"%(redGradient*100),title="Red gradient: %.3f G/cm"%(redGradient*100))
