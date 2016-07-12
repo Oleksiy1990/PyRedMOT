@@ -5,6 +5,7 @@ import profile
 import h5py
 import tables #this is PyTables to use HDF5 for Python 
 import sys
+import itertools
 
 from scipy.integrate import odeint 
 from numpy.random import random_sample, uniform
@@ -13,12 +14,19 @@ from mpl_toolkits.mplot3d import Axes3D
 from pyConstants import *
 from SrConstants import * 
 
+"""
+General equations for the MOT force in 3D. This assumes the approximation of perfect polarization of
+the beams
+"""
+
 def MOT_force(k_laser,linewidth,sat_param,velocity,B_gradient,position,detunings_list):
     delta_min = [detuning - k_laser*velocity - (muBohr*B_gradient*position/hbar) for detuning in detunings_list]
     delta_plus = [detuning + k_laser*velocity + (muBohr*B_gradient*position/hbar) for detuning in detunings_list]
     force_list = [(hbar*k_laser*linewidth*sat_param/2)*(1/(1+sat_param*(2*delta_min[q]/linewidth)**2) - \
         1/(1+sat_param*(2*delta_plus[q]/linewidth)**2)) for q in range(len(delta_min))]
     return np.sum(force_list)
+
+
 
 def diffeqs_blue(variables,t,params): #We disregard gravity
     (x,vx,y,vy,z,vz) = variables
@@ -48,11 +56,10 @@ detunings_blue = [-blueGamma]
 # num_redCombLines = 50
 # detunings_red = np.linspace(-2*np.pi*200*10**3,-2*np.pi*5*10**6,num_redCombLines)
 
-
-# This is the simulation for red, let's disregard the blue for now
-
-bluePowerX = bluePowerY = bluePowerZ = 10*10**-3
-blueRadX = blueRadY = blueRadZ = 10*10**-3
+bluePowerX = bluePowerY = 10*10**-3 
+bluePowerZ = 10*10**-3
+blueRadX = blueRadY = 10*10**-3
+blueRadZ = 10*10**-3
 blueGradient = 0.55 # T/m = 55 G/cm
 
 
@@ -64,18 +71,55 @@ parameters_blue = [bluePowerX,bluePowerY,bluePowerZ,blueRadX,blueRadY,blueRadZ,b
 tStop = 0.5
 t = np.linspace(0., tStop, 10**5)
 
-initz = 0
+initz = np.linspace(-12e-3,12e-3,7)
 init_rad = 0.05
-init_angle = 10*(np.pi/180)
-initx = -init_rad*np.sin(init_angle)
-inity = -init_rad*np.cos(init_angle)
+init_angle = 30*(np.pi/180) #not to change
+x_shifts = np.linspace(0,13.86e-3,5)
+y_shifts = np.linspace(0,24e-3,5)
+initx = -init_rad*np.sin(init_angle)+x_shifts
+inity = -init_rad*np.cos(init_angle)+y_shifts
 
-initvx = np.sin(30*np.pi/180)
-initvy = np.cos(30*np.pi/180)
-initvz = 0 
+#print(initx,"\n",inity,"\n",initz)
 
-inits = (initx,initvx,inity,initvy,initz,initvz)
-solution_blue = odeint(diffeqs_blue, inits, t, args=(parameters_blue,),mxstep=10**8)
+init_speed_xy = 30 #m/s
+vel_angle = np.linspace(25,35,5) #deg
+initvx = init_speed_xy*np.sin(vel_angle*np.pi/180)
+initvy = init_speed_xy*np.cos(vel_angle*np.pi/180)
+initvz = np.linspace(0,2,4) 
+
+inits_pos_1 = np.array(list(itertools.product(initx,[inity[0]],initz)))
+inits_pos_2 = np.array(list(itertools.product([initx[0]],inity[1:],initz)))
+inits_pos = np.concatenate((inits_pos_1,inits_pos_2))
+print(inits_pos.shape)
+inits_vel = np.array([[init_speed_xy*np.sin(angle*np.pi/180),init_speed_xy*np.cos(angle*np.pi/180),vz] for angle in vel_angle for vz in initvz])
+print(inits_vel.shape)
+
+inits = np.array([[p[0],v[0],p[1],v[1],p[2],v[2]] for p in inits_pos for v in inits_vel])
+print(inits.shape)
+
+
+
+final_pos_captured = []
+final_pos_lost = []
+weird = []
+
+#inits = (initx,initvx,inity,initvy,initz,initvz)
+for num,ic in enumerate(inits):
+	print("Solving ",num)
+	solution_blue = odeint(diffeqs_blue, ic, t, args=(parameters_blue,),mxstep=10**8)
+	fp = np.sqrt(solution_blue[-1,0]**2+solution_blue[-1,2]**2+solution_blue[-1,4]**2)
+	if fp<=1e-4:
+		final_pos_captured.append(fp)
+	elif fp>1e-4:
+		final_pos_lost.append(fp)
+	else:
+		weird.append(fp)
+
+print(len(final_pos_captured))
+print(len(final_pos_lost))
+print(len(weird))
+
+sys.exit(0)
 
 position_res = np.sqrt(solution_blue[:,0]**2+solution_blue[:,2]**2+solution_blue[:,4]**2)
 
@@ -88,35 +132,6 @@ ax1.scatter(solution_blue[:,0],solution_blue[:,2])
 ax1.set_xlabel('x')
 ax1.set_ylabel('y')
 plt.show()
-
-sys.exit(0)
-
-position_pts_xy = 5 # number of random starting positions to check
-position_pts_z = 7
-position_rad = redRadX*np.sqrt(3/2) # distance from the center in which we allow the atom to start
-                                    # we assume that if the atom is outside of e**-3 of the beam
-                                    # it cannot be captured
-
-
-## Let's leave the random positions for now 
-# pos_cube_x = uniform(low=0,high=position_rad,size=position_pts)
-# pos_cube_y = uniform(low=0,high=position_rad,size=position_pts)
-# pos_cube_z = uniform(low=-position_rad,high=position_rad,size=position_pts)
-#pos_cube = np.stack((pos_cube_x,pos_cube_y,pos_cube_z),axis=-1)
-
-
-
-# Making a grid or starting position coordinates
-pos_cube_x = np.linspace(0,position_rad,position_pts_xy)
-pos_cube_y = np.linspace(0,position_rad,position_pts_xy)
-pos_cube_z = np.linspace(-position_rad,position_rad,position_pts_z)
-
-
-xx,yy,zz = np.meshgrid(pos_cube_x,pos_cube_y,pos_cube_z,indexing="ij")
-xxf = xx.flatten()
-yyf = yy.flatten()
-zzf = zz.flatten()
-total_positions = np.column_stack((xxf,yyf,zzf))
 
 
 # fig = plt.figure()
@@ -261,102 +276,3 @@ sys.exit(0)
 
 #---------------------------------------------------------
 
-coords_and_vel = tbl.row
-
-print("Getting ready to solve")
-solution_red = odeint(diffeqs_red, initialconds_red[0], t, args=(parameters_red,),mxstep=10**9)
-
-print("Solved! Getting ready to write data")
-
-for i in range(len(solution_red)):
-    coords_and_vel["x_pos"] = solution_red[i,0]   
-    coords_and_vel["vx"] = solution_red[i,1] 
-    coords_and_vel["y_pos"] = solution_red[i,2] 
-    coords_and_vel["vy"] = solution_red[i,3] 
-    coords_and_vel["z_pos"] = solution_red[i,4] 
-    coords_and_vel["vz"] = solution_red[i,5] 
-    coords_and_vel.append()
-
-tbl.flush()
-
-sys.exit(0)
-
-
-
-# THIS IS THE OLD WAY TO SAVE USING h5py 
-# DISREGARD FOR NOW
-
-# dset_zplus_data = grp.create_dataset("zplus3_data",(len(initialconds_red),6))
-# dset_zplus_inits = grp.create_dataset("zplus3_inits",(len(initialconds_red),6))
-
-# grp.attrs["gradTperM"] = redGradient 
-# dset_zplus_data.attrs["powXWatts"] = redPowerX
-# dset_zplus_data.attrs["powYWatts"] = redPowerY
-# dset_zplus_data.attrs["powZWatts"] = redPowerZ
-# dset_zplus_data.attrs["radXMeters"] = redRadX
-# dset_zplus_data.attrs["radYMeters"] = redRadY
-# dset_zplus_data.attrs["radZMeters"] = redRadZ
-# dset_zplus_data.attrs["detuningsHz"] = detunings_red
-
-
-def simulation_func_red(initialconds,parameters_red,t):
-    solutions = []
-    for inits in initialconds_red:
-        solution_red = odeint(diffeqs_red, inits, t, args=(parameters_red,))
-        endresult = solution_red[-1,:]
-        solutions.append(endresult)
-        del solution_red
-        del endresult
-    return solutions
-
-# profile.run("main()")
-
-sols = simulation_func_red(initialconds_red,parameters_red,t)
-
-
-
-
-
-
-
-
-
-
-
-
-# dset_zplus_inits[...] = initialconds_red
-# dset_zplus_data[...] = sols
-# file_save.close()
-
-# f = h5py.File("resultsRed/test.hdf5","a")
-# grp = f.create_group("mygroup")
-# dset = grp.create_dataset("mydataset",data=sols)
-# grp.attrs["power_g"] = 10
-# grp.attrs["width_g"] = 5
-# dset.attrs["power"] = 10
-# dset.attrs["width"] = 5
-# dset.attrs["dets"] = detunings_red
-
-# np.savetxt("inits1.txt",initialconds_red)
-# np.savetxt("results1.txt",sols)
-
-
-
-# # Plot results
-# fig = plt.figure(1, figsize=(8,8))
-
-# # Plot theta as a function of time
-# ax1 = fig.add_subplot(211)
-# ax1.plot(t, solution_red[:,4])
-# ax1.set_xlabel('time')
-# ax1.set_ylabel('theta')
-
-# # Plot omega as a function of time
-# ax2 = fig.add_subplot(212)
-# ax2.plot(t, solution_red[:,5])
-# ax2.set_xlabel('time')
-# ax2.set_ylabel('omega')
-
-
-# plt.tight_layout()
-# plt.show()
