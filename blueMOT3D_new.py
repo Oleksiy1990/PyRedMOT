@@ -33,9 +33,14 @@ def diffeqs_blue(variables,t,params): #We disregard gravity
     (laserPowerX,laserPowerY,laserPowerZ,beamWaistRadX,beamWaistRadY,beamWaistRadZ,B_gradient,detunings_list) = params
 
 
-    gaussian_Xbeam = np.exp((-2*x**2)/beamWaistRadX**2)*(2*laserPowerX)/(np.pi*(beamWaistRadX**2))
-    gaussian_Ybeam = np.exp((-2*y**2)/beamWaistRadY**2)*(2*laserPowerY)/(np.pi*(beamWaistRadY**2))
-    gaussian_Zbeam = np.exp((-2*z**2)/beamWaistRadZ**2)*(2*laserPowerZ)/(np.pi*(beamWaistRadZ**2))
+    #gaussian_Xbeam = np.exp((-2*x**2)/beamWaistRadX**2)*(2*laserPowerX)/(np.pi*(beamWaistRadX**2))
+    #gaussian_Ybeam = np.exp((-2*y**2)/beamWaistRadY**2)*(2*laserPowerY)/(np.pi*(beamWaistRadY**2))
+    #gaussian_Zbeam = np.exp((-2*z**2)/beamWaistRadZ**2)*(2*laserPowerZ)/(np.pi*(beamWaistRadZ**2))
+
+    # This assumes circular beams!
+    gaussian_Xbeam = (2*laserPowerX/(np.pi*beamWaistRadX**2))*np.exp(-2*(y**2)/beamWaistRadX**2)*np.exp(-2*(z**2)/beamWaistRadX**2)
+    gaussian_Zbeam = (2*laserPowerY/(np.pi*beamWaistRadY**2))*np.exp(-2*(x**2)/beamWaistRadY**2)*np.exp(-2*(z**2)/beamWaistRadY**2)
+    gaussian_Zbeam = (2*laserPowerZ/(np.pi*beamWaistRadZ**2))*np.exp(-2*(x**2)/beamWaistRadZ**2)*np.exp(-2*(y**2)/beamWaistRadZ**2)
 
 
     derivs = [vx,(1/mSr88)*MOT_force(kVecBlue,blueGamma,gaussian_Xbeam/blueIsat,vx,B_gradient,x,detunings_list),\
