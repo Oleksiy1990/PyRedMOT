@@ -19,6 +19,8 @@ General equations for the MOT force in 3D. This assumes the approximation of per
 the beams
 """
 
+viewport_rad = 19e-3 #radius of the windows in meters (19mm, 38mm diam). This explicitly takes into account the fact that the beam can be clipped by the viewport
+
 def MOT_force(k_laser,linewidth,sat_param,velocity,B_gradient,position,detunings_list):
     delta_min = [detuning - k_laser*velocity - (muBohr*B_gradient*position/hbar) for detuning in detunings_list]
     delta_plus = [detuning + k_laser*velocity + (muBohr*B_gradient*position/hbar) for detuning in detunings_list]
@@ -33,14 +35,10 @@ def diffeqs_blue(variables,t,params): #We disregard gravity
     (laserPowerX,laserPowerY,laserPowerZ,beamWaistRadX,beamWaistRadY,beamWaistRadZ,B_gradient,detunings_list) = params
 
 
-    #gaussian_Xbeam = np.exp((-2*x**2)/beamWaistRadX**2)*(2*laserPowerX)/(np.pi*(beamWaistRadX**2))
-    #gaussian_Ybeam = np.exp((-2*y**2)/beamWaistRadY**2)*(2*laserPowerY)/(np.pi*(beamWaistRadY**2))
-    #gaussian_Zbeam = np.exp((-2*z**2)/beamWaistRadZ**2)*(2*laserPowerZ)/(np.pi*(beamWaistRadZ**2))
-
     # This assumes circular beams!
-    gaussian_Xbeam = (2*laserPowerX/(np.pi*beamWaistRadX**2))*np.exp(-2*(y**2)/beamWaistRadX**2)*np.exp(-2*(z**2)/beamWaistRadX**2)
-    gaussian_Zbeam = (2*laserPowerY/(np.pi*beamWaistRadY**2))*np.exp(-2*(x**2)/beamWaistRadY**2)*np.exp(-2*(z**2)/beamWaistRadY**2)
-    gaussian_Zbeam = (2*laserPowerZ/(np.pi*beamWaistRadZ**2))*np.exp(-2*(x**2)/beamWaistRadZ**2)*np.exp(-2*(y**2)/beamWaistRadZ**2)
+    gaussian_Xbeam = (2*laserPowerX/(np.pi*beamWaistRadX**2))*np.exp(-2*(y**2)/beamWaistRadX**2)*np.exp(-2*(z**2)/beamWaistRadX**2) if (y**2+z**2<=viewport_rad**2) else 0
+    gaussian_Ybeam = (2*laserPowerY/(np.pi*beamWaistRadY**2))*np.exp(-2*(x**2)/beamWaistRadY**2)*np.exp(-2*(z**2)/beamWaistRadY**2) if (x**2+z**2<=viewport_rad**2) else 0
+    gaussian_Zbeam = (2*laserPowerZ/(np.pi*beamWaistRadZ**2))*np.exp(-2*(x**2)/beamWaistRadZ**2)*np.exp(-2*(y**2)/beamWaistRadZ**2) if (x**2+y**2<=viewport_rad**2) else 0
 
 
     derivs = [vx,(1/mSr88)*MOT_force(kVecBlue,blueGamma,gaussian_Xbeam/blueIsat,vx,B_gradient,x,detunings_list),\
@@ -69,7 +67,7 @@ bluePowerZ = 2*10**-3
 #Put only integer number of millimeters, not fractions
 # blueRadX = blueRadY = 10*10**-3
 # blueRadZ = 10*10**-3
-blueGradientGcm = 55 #put an integer number here
+blueGradientGcm = 20 #put an integer number here
 blueGradient = 0.01*blueGradientGcm # T/m = 55 G/cm
 
 
@@ -135,7 +133,7 @@ class Descriptions(tables.IsDescription):
 # grp_descriptions = file_save.create_group(grp_simulation,"Descriptions",\
 #     title="The input parameters of the simulation are given here, units are SI")
 
-radiiXY = np.array([2,7,12,17])*1e-3
+radiiXY = np.array([5,8,11,14,17])*1e-3
 for radX in radiiXY:
 	radY = radZ = radX
 	parameters_blue = [bluePowerX,bluePowerY,bluePowerZ,radX,radY,radZ,blueGradient,detunings_blue]

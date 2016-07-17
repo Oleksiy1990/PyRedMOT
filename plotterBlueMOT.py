@@ -6,12 +6,12 @@ import sys
 #import matplotlib.animation as animation
 import itertools
 
-filename = "C:/Users/Oleksiy/Desktop/Code/PyRedMOT/resultsBlueMOT/pX15pY15pZ2grad55.hdf5"
+filename = "C:/Users/Oleksiy/Desktop/Code/PyRedMOT/resultsBlueMOT/starting30ms/pX17pY17pZ4grad55.hdf5"
 #filename="/Users/oleksiy/Desktop/PythonCode/Transversecooling/resultsTC/pow30mWspeed550det1.hdf5"
 datafile = tables.open_file(filename,"r")
 
 
-radiiMM = [2,7,12,17]
+radiiMM = [5,8,11,14,17]
 nodes = ["radX%.iradY%.iradZ%.i/Data"%(radiusMM,radiusMM,radiusMM) for radiusMM in radiiMM]
 
 
