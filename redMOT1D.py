@@ -39,7 +39,7 @@ def diffeqs1D_red(variables,t,params):
     (power,waistRad,B_gradient,r,gravity,detunings_list) = params
     # give the "gravity" paramter as 1 or 0 to have it ON or OFF
 
-    redIntensity = (2*power/(np.pi*waistRad**2))*np.exp(-2*r**2/waistRad**2)/len(detunings_list) if abs(x) < windowRadius else 0
+    redIntensity = (2*power/(np.pi*waistRad**2))*np.exp(-2*r**2/waistRad**2)/len(detunings_list) if abs(x) <= waistRad else 0
     #This division is important because it's the whole reason why we need more power in the broadband red MOT
 
     derivs = [vx,(1/mSr88)*MOT_force(kVecRed,redGamma,redIntensity/redIsat,vx,B_gradient,x,detunings_list) - gravity*9.81] #gravity can be either turned on or off
@@ -114,7 +114,11 @@ if __name__ == '__main__':
             #redBeamRadius = 17e-3 
 
             params = [[redPower,redBeamRadius,redGradient,r,gravity,detunings_red] for r in np.linspace(0,17e-3,7)]
-            inits = [(x,vx) for x in np.linspace(-17e-3,0,10) for vx in np.linspace(-0.9,0.9,10)] #0.9 m/s is the max speed covering >95% atoms at 720 microK
+           
+            inits = [(x,vx) for x in np.linspace(-redBeamRadius,0,10) for vx in np.linspace(-0.9,0.9,10)] #0.9 m/s is the max speed covering >95% atoms at 720 microK
+            # it only makes sense to consider the points on x within the red beam radius, because for the points outside we anyway
+            # set the cutoff that the intensity there is 0
+
             print("There are %.i params"%len(params))
             print("There are %.i inits"%len(inits))
 
