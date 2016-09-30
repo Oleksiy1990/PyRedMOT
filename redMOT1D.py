@@ -39,7 +39,7 @@ def diffeqs1D_red(variables,t,params):
     (power,waistRad,B_gradient,r,gravity,detunings_list) = params
     # give the "gravity" paramter as 1 or 0 to have it ON or OFF
 
-    redIntensity = (2*power/(np.pi*waistRad**2))*np.exp(-2*r**2/waistRad**2)/len(detunings_list) if abs(x) <= waistRad else 0
+    redIntensity = (2*power/(np.pi*waistRad**2))*np.exp(-(2*r**2)/(waistRad**2))/len(detunings_list) if abs(x) <= waistRad else 0
     #This division is important because it's the whole reason why we need more power in the broadband red MOT
 
     derivs = [vx,(1/mSr88)*MOT_force(kVecRed,redGamma,redIntensity/redIsat,vx,B_gradient,x,detunings_list) - gravity*9.81] #gravity can be either turned on or off
@@ -98,8 +98,8 @@ def simulation_func_red(init,params,t,tbl_results,tbl_simparameters,current_init
 
 if __name__ == '__main__': 
 
-    num_redCombLines = int(sys.argv[1]) #Give the number of comb lines as a command line argument 
-    for redPower in [7e-3,10e-3,13e-3]:
+    num_redCombLines = int(sys.argv[1]) # Give the number of comb lines as a command line argument 
+    for redPower in [1e-3,3e-3,5e-3]:
         for redBeamRadius in [2e-3,7e-3,12e-3,17e-3]:
 
             print("Doing beam rad %.i, power %.i, lines %.i"%(int(redBeamRadius*1e3),int(redPower*1e3),num_redCombLines))

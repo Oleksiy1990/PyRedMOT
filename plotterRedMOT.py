@@ -8,7 +8,7 @@ import sys
 import itertools
 
 
-num_lines = 250
+num_lines = 100
 gradient = 115
 
 
@@ -16,7 +16,7 @@ filename = "C:/Users/Oleksiy/Desktop/Code/PyRedMOT/resultsRedMOT/redMOT%.ilinesG
 #filename="/Users/oleksiy/Desktop/PythonCode/Transversecooling/resultsTC/pow30mWspeed550det1.hdf5"
 
 radiiMM = [2,7,12,17]
-powermW = 13
+powermW = 1
 
 
 nodes = ["gradient%.iGcm/Pow%.imWredRad%.immGrad%.iGcmlines%.i"%(int(gradient),powermW,radiusMM,int(gradient),num_lines) for radiusMM in radiiMM]
@@ -63,5 +63,7 @@ plt.show()
 
 
 sys.exit(0)
+
+
 
 
