@@ -1,14 +1,12 @@
 import numpy as np 
 import scipy as sp 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 #import profile
 import tables #this is PyTables to use HDF5 for Python 
 import sys
 import itertools
 
 from scipy.integrate import odeint 
-from numpy.random import random_sample, uniform
-from mpl_toolkits.mplot3d import Axes3D
 
 from pyConstants import *
 from SrConstants import * 
@@ -189,7 +187,7 @@ if __name__ == '__main__':
     inits_pos = np.array([initx,inity,initz])
 
     init_speed_xy = 30 #m/s
-    vel_angle = 30 #deg, this is the angle in the coord sys wiht respect to the beams
+    vel_angle = 30 #deg, this is the angle in the coord sys with respect to the beams
     initvx = init_speed_xy*np.sin(vel_angle*np.pi/180) + np.linspace(-7,7,7)
     initvy = init_speed_xy*np.cos(vel_angle*np.pi/180) + np.linspace(-7,7,7)
     initvz = np.linspace(-5,5,7) 
@@ -197,19 +195,26 @@ if __name__ == '__main__':
 
 
     inits = np.array([[inits_pos[0],v[0],inits_pos[1],v[1],inits_pos[2],v[2]] for v in inits_vel])
-    print(len(inits))
+    
     #sys.exit(0)
 
-    #Put only integer number of milliwatts, not fractions
-    bluePowerX = bluePowerY = 8*10**-3 
-    bluePowerZ = 5*10**-3
+    
     radiiXYZ = np.array([8,11,14,17])*1e-3 
 
+    #Put only integer number of milliwatts, not fractions
+    bluePowerX = bluePowerY = 10*10**-3 
+    bluePowerZ = 2*10**-3
     simulation_function(inits,radiiXYZ,bluePowerX,bluePowerY,bluePowerZ,blueGradient,detunings_blue)
 
 
-    print(len(inits))
+    bluePowerX = bluePowerY = 8*10**-3 
+    bluePowerZ = 5*10**-3
+    simulation_function(inits,radiiXYZ,bluePowerX,bluePowerY,bluePowerZ,blueGradient,detunings_blue)
 
+
+    bluePowerX = bluePowerY = 7*10**-3 
+    bluePowerZ = 7*10**-3
+    simulation_function(inits,radiiXYZ,bluePowerX,bluePowerY,bluePowerZ,blueGradient,detunings_blue)
 
 
 
