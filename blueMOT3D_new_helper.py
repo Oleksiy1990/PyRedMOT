@@ -186,14 +186,14 @@ if __name__ == '__main__':
 
 ######################
 
-    simNum = 1
+    simNum = 5
 
-    ang_fromnegY = init_angle-abs(np.arctan(8e-3/_INIT_RAD))
-    dist_fromatoms = np.sqrt((8e-3)**2 + _INIT_RAD**2)
+    ang_fromnegY = init_angle-abs(np.arctan(4e-3/_INIT_RAD))
+    dist_fromatoms = np.sqrt((4e-3)**2 + _INIT_RAD**2)
 
     initx = -dist_fromatoms*np.sin(ang_fromnegY)
     inity = -dist_fromatoms*np.cos(ang_fromnegY)
-    initz = 0
+    initz = 4e-3
     inits_pos = np.array([initx,inity,initz])
 
     init_speed_xy = 30 #m/s
@@ -206,13 +206,13 @@ if __name__ == '__main__':
 
     inits = np.array([[inits_pos[0],v[0],inits_pos[1],v[1],inits_pos[2],v[2]] for v in inits_vel])
 
+    #Put only integer number of milliwatts, not fractions
+
     print("Now in simulation number %.i"%simNum)
 
-    #Put only integer number of milliwatts, not fractions
     bluePowerX = bluePowerY = 10*10**-3 
     bluePowerZ = 2*10**-3
     simulation_function(inits,radiiXYZ,bluePowerX,bluePowerY,bluePowerZ,blueGradient,detunings_blue,simNum)
-
 
     print("Now in simulation number %.i"%simNum)
 
@@ -228,14 +228,14 @@ if __name__ == '__main__':
 
 ################
 
-    simNum = 2
+    simNum = 6
 
-    ang_fromnegY = init_angle-abs(np.arctan(4e-3/_INIT_RAD))
-    dist_fromatoms = np.sqrt((4e-3)**2 + _INIT_RAD**2)
+    ang_fromnegY = init_angle-abs(np.arctan(0e-3/_INIT_RAD))
+    dist_fromatoms = np.sqrt((0e-3)**2 + _INIT_RAD**2)
 
     initx = -dist_fromatoms*np.sin(ang_fromnegY)
     inity = -dist_fromatoms*np.cos(ang_fromnegY)
-    initz = 0
+    initz = 4e-3
     inits_pos = np.array([initx,inity,initz])
 
     init_speed_xy = 30 #m/s
@@ -270,14 +270,14 @@ if __name__ == '__main__':
 
 ###################
 
-    simNum = 3
+    simNum = 7
 
     ang_fromnegY = init_angle+abs(np.arctan(4e-3/_INIT_RAD))
     dist_fromatoms = np.sqrt((4e-3)**2 + _INIT_RAD**2)
 
     initx = -dist_fromatoms*np.sin(ang_fromnegY)
     inity = -dist_fromatoms*np.cos(ang_fromnegY)
-    initz = 0
+    initz = 4e-3
     inits_pos = np.array([initx,inity,initz])
 
     init_speed_xy = 30 #m/s
@@ -313,14 +313,14 @@ if __name__ == '__main__':
 
 ##################
 
-    simNum = 4
+    simNum = 8
 
-    ang_fromnegY = init_angle+abs(np.arctan(8e-3/_INIT_RAD))
-    dist_fromatoms = np.sqrt((8e-3)**2 + _INIT_RAD**2)
+    ang_fromnegY = init_angle+abs(np.arctan(0e-3/_INIT_RAD))
+    dist_fromatoms = np.sqrt((0e-3)**2 + _INIT_RAD**2)
 
     initx = -dist_fromatoms*np.sin(ang_fromnegY)
     inity = -dist_fromatoms*np.cos(ang_fromnegY)
-    initz = 0
+    initz = 8e-3
     inits_pos = np.array([initx,inity,initz])
 
     init_speed_xy = 30 #m/s
