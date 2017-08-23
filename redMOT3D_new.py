@@ -2,11 +2,11 @@ import numpy as np
 import scipy as sp 
 import matplotlib.pyplot as plt
 import profile
-import h5py
+
 import tables #this is PyTables to use HDF5 for Python 
 import sys
 
-from scipy.integrate import odeint 
+from scipy.integrate import odeint, quad
 from numpy.random import random_sample, uniform
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -18,9 +18,11 @@ def MOT_force(k_laser,linewidth,sat_param,velocity,B_gradient,position,detuning)
     delta_min = detuning + k_laser*velocity - (muBohr*B_gradient*position/hbar)
     delta_plus = detuning - k_laser*velocity + (muBohr*B_gradient*position/hbar)
     force_max = hbar*k_laser*linewidth/2
-    force_total = force_max*(sat_param/(1+sat_param+(2*delta_min/linewidth)**2) + \
-        sat_param/(1+sat_param+(2*delta_plus/linewidth)**2))
+    force_total = force_max*(sat_param/(1+sat_param+(2*delta_plus/linewidth)**2) - \
+        sat_param/(1+sat_param+(2*delta_min/linewidth)**2)) 
+    #Now the equations for the force look correct 
     return force_total
+
 
 def diffeqs_MOT(variables,t,params):
     (x,vx,y,vy,z,vz) = variables
@@ -28,14 +30,17 @@ def diffeqs_MOT(variables,t,params):
         beamWaistRadX,beamWaistRadY,beamWaistRadZ,B_gradient,detuning) = params
 
 
-    gaussian_Xbeam = np.exp((-2*x**2)/beamWaistRadX**2)*(2*laserPowerX)/(np.pi*(beamWaistRadX**2))
-    gaussian_Ybeam = np.exp((-2*y**2)/beamWaistRadY**2)*(2*laserPowerY)/(np.pi*(beamWaistRadY**2))
-    gaussian_Zbeam = np.exp((-2*z**2)/beamWaistRadZ**2)*(2*laserPowerZ)/(np.pi*(beamWaistRadZ**2))
+    gaussian_Xbeam = np.exp((-2*(y**2+z**2))/beamWaistRadX**2)*(2*laserPowerX)/(np.pi*(beamWaistRadX**2))
+    gaussian_Ybeam = np.exp((-2*(x**2+z**2))/beamWaistRadY**2)*(2*laserPowerY)/(np.pi*(beamWaistRadY**2))
+    gaussian_Zbeam = np.exp((-2*(x**2+y**2))/beamWaistRadZ**2)*(2*laserPowerZ)/(np.pi*(beamWaistRadZ**2))
+
+    phi = uniform(0,np.pi)
+    theta = uniform(0,2*np.pi)
 
 
-    derivs = [vx,(1/mSr88)*MOT_force(k_vector,Gamma,gaussian_Xbeam/Isat,vx,B_gradient,x,detuning),\
-            vy,(1/mSr88)*MOT_force(k_vector,Gamma,gaussian_Ybeam/Isat,vy,B_gradient,y,detuning),\
-            vz,(1/mSr88)*MOT_force(k_vector,Gamma,gaussian_Zbeam/Isat,vz,-2*B_gradient,z,detuning) - g_Earth]
+    derivs = [vx,(1/mSr88)*(MOT_force(k_vector,Gamma,gaussian_Xbeam/Isat,vx,B_gradient,x,detuning)+MOT_force(k_vector,Gamma,gaussian_Xbeam/Isat,vx,B_gradient,x,detuning)*np.sin(theta)*np.cos(phi)),\
+            vy,(1/mSr88)*(MOT_force(k_vector,Gamma,gaussian_Ybeam/Isat,vy,B_gradient,y,detuning)+MOT_force(k_vector,Gamma,gaussian_Xbeam/Isat,vx,B_gradient,x,detuning)*np.sin(theta)*np.sin(phi)),\
+            vz,(1/mSr88)*MOT_force(k_vector,Gamma,gaussian_Zbeam/Isat,vz,2*B_gradient,z,detuning)+MOT_force(k_vector,Gamma,gaussian_Xbeam/Isat,vx,B_gradient,x,detuning)*np.cos(phi) - g_Earth]
 
     # Quadrupole field from: 
     # https://www2.physics.ox.ac.uk/sites/default/files/2013-01-19/minsung_pdf_16672.pdf eq. 2.40
@@ -48,10 +53,10 @@ def diffeqs_MOT(variables,t,params):
 # This is the simulation for red, let's disregard the blue for now
 
 
-detuning_blue = -blueGamma/2
-bluePowerX = bluePowerY = bluePowerZ = 10*10**-3
-blueRadX = blueRadY = blueRadZ = 10*10**-3
-blueGradient = 0.55 # T/m = 55 G/cm
+detuning_blue = -blueGamma*2
+bluePowerX = bluePowerY = bluePowerZ = 10e-3
+blueRadX = blueRadY = blueRadZ = 10e-3
+blueGradient = -0.45 # T/m = 45 G/cm NOTE! Due to sign conventions, this must be written as negative, otherwise equations fail
 
 
 parameters_blue = [kVecBlue,blueGamma,blueIsat,bluePowerX,bluePowerY,bluePowerZ, \
@@ -59,13 +64,29 @@ parameters_blue = [kVecBlue,blueGamma,blueIsat,bluePowerX,bluePowerY,bluePowerZ,
 
 
 tStop = 0.1
-t = np.linspace(0., tStop, 10**5)
+t = np.linspace(0., tStop, 1e5)
 inits_blue_test = (0,5,0,5,0,5)
-solution_blue = odeint(diffeqs_MOT, inits_blue_test, t, args=(parameters_blue,),mxstep=10**8)
-print(solution_blue.shape)
+solution_blue = odeint(diffeqs_MOT, inits_blue_test, t, args=(parameters_blue,),mxstep = 10**1)
+print(solution_blue)
 
-plt.plot(t,np.sqrt(solution_blue[:,0]**2 + solution_blue[:,2]**2 + solution_blue[:,4]**2))
-plt.plot(t,np.sqrt(solution_blue[:,1]**2 + solution_blue[:,3]**2 + solution_blue[:,5]**2))
+
+# fig = plt.figure()
+# ax = fig.gca(projection='3d')
+# x = solution_blue[:,0]
+# y = solution_blue[:,2]
+# z = solution_blue[:,4]
+# ax.plot(x, y, z, label='parametric curve')
+# ax.legend()
+
+# plt.show()
+# sys.exit(0)
+
+#plt.plot(t,np.sqrt(solution_blue[:,0]**2 + solution_blue[:,2]**2 + solution_blue[:,4]**2),label="pos")
+#plt.plot(t,np.sqrt(solution_blue[:,1]**2 + solution_blue[:,3]**2 + solution_blue[:,5]**2))
+plt.plot(t,solution_blue[:,1],label="vx")
+plt.plot(t,solution_blue[:,3],label="vy")
+plt.plot(t,solution_blue[:,5],label="vz")
+plt.legend()
 plt.show()
 sys.exit(0)
 
