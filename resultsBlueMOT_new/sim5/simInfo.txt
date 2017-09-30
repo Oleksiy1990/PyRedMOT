@@ -1,0 +1,12 @@
+Data going into the simulation in this folder: 
+Detuning: -1 blueGamma 
+ power X-beam: 0.0080 W 
+ power Y-beam: 0.0080 W 
+ power Z-beam: 0.0015 W 
+Beam radius W_x: 0.0030 m 
+ Beam radius W_y: 0.0030 m 
+ Beam radius W_z: 0.0030 m 
+B-field grad in radial directions: -0.5500 T/m 
+Initial position: (x,y,z) = (-0.0866,-0.05,0) m , which is the center at the end of the short ZS tube 
+Initial velocities: (vx,vy,vz) = (init_speed*sin(theta)cos(phi),init_speed*sin(theta)sin(phi),init_speed*cos(theta)) m/s 
+where theta is taken from a uniform random distribution [90 deg, 95 deg] and phi from a uniform random distribution [25 deg, 35 deg] 

@@ -1,0 +1,13 @@
+In these plots: 
+
+Sr-88
+Beam w's per axis are given in mm in filenames
+Gradient: 55 G/cm
+Detuning: -2 Gamma
+Powers: (x,y,z) = (9.5,9.5,1.2) mW
+
+Initial conditions : starting position always at the origin, starting velocities are random, taken from a uniform distribution
+low_end_vel = 1 m/s
+high_end_vel = 30 m/s
+inits_blue = [(0,r.uniform(low_end_vel,high_end_vel),0,r.uniform(low_end_vel,high_end_vel),0,-r.uniform(low_end_vel,high_end_vel)) for q in range(num_init_vels)]
+200 random initial conditions taken 

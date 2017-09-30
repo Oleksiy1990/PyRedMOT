@@ -4,15 +4,21 @@ import matplotlib.pyplot as plt
 #import profile
 import random as r
 
-import tables #this is PyTables to use HDF5 for Python 
+#import tables #this is PyTables to use HDF5 for Python 
 import sys
+import os
 
 from scipy.integrate import odeint, quad
-from numpy.random import random_sample, uniform
-from mpl_toolkits.mplot3d import Axes3D
+#from numpy.random import random_sample, uniform
+#from mpl_toolkits.mplot3d import Axes3D
 
 from pyConstants import *
 from SrConstants import * 
+
+cos = np.cos
+sin = np.sin
+pi = np.pi
+
 
 def MOT_force(k_laser,linewidth,sat_param,velocity,B_gradient,position,detuning):
     #sat_param = I/I_sat
@@ -48,81 +54,158 @@ def diffeqs_MOT(variables,t,params):
     # https://www2.physics.ox.ac.uk/sites/default/files/2013-01-19/minsung_pdf_16672.pdf eq. 2.40
     return derivs
 
+# The functions above define the necessary and general ingredients for simulating MOT dynamics
+
+#================================================
+
 # Simulation parameters
 
 
 
 # This is the simulation for red, let's disregard the blue for now
 
-
-detuning_blue = -blueGamma*1
-bluePowerX = bluePowerY = 6.5e-3 
-bluePowerZ = 6.5e-3
+detuning_blue_gammafraction = 1.5
+detuning_blue = -blueGamma*detuning_blue_gammafraction
+bluePowerX = bluePowerY = 7e-3 
+bluePowerZ = 1.5e-3
 blueRadX = blueRadY = 15e-3
-blueRadZ = 15e-3
+blueRadZ = 10e-3
 blueGradient = -0.55 # T/m = 45 G/cm NOTE! Due to sign conventions, this must be written as negative, otherwise equations fail
 
-detuning_fraction = np.linspace(0.5,3.,10)
 captured_atoms = []
 counter = 0
 
-for fr in detuning_fraction:
-
-	print("Loop %i out of %i"%(counter,detuning_fraction.size))
-	counter += 1
-
-	detuning_blue = -blueGamma*fr
-
-	parameters_blue = [kVecBlue,blueGamma,blueIsat,bluePowerX,bluePowerY,bluePowerZ, \
-	                    blueRadX,blueRadY,blueRadZ,blueGradient,detuning_blue]
+simulation_root_dir = "/Users/oleksiy/Desktop/PythonCode/PyRedMOT/resultsBlueMOT_new"
+simulation_directory_name = "sim7"
+simulation_dir_fullpath = simulation_root_dir+"/"+simulation_directory_name
 
 
-	tStop = 0.1
-	t = np.linspace(0., tStop, 1e5)
+
+#This is to prevent simulations from being overwritten
+try:
+    os.mkdir(simulation_dir_fullpath)
+except:
+    print("Cannot make directory %s for simulaton. Check the name, it probably already exists"%simulation_dir_fullpath)
+    sys.exit(0) 
+
+initial_speeds = np.linspace(10,150,50)
+
+for init_speed in initial_speeds:
+
+    print("Loop %i out of %i"%(counter,initial_speeds.size))
+    counter += 1
+
+    parameters_blue = [kVecBlue,blueGamma,blueIsat,bluePowerX,bluePowerY,bluePowerZ, \
+                        blueRadX,blueRadY,blueRadZ,blueGradient,detuning_blue]
 
 
-	num_init_vels = 200
-	low_end_vel = 1
-	high_end_vel = 30
-
-	inits_blue = [(0,r.uniform(low_end_vel,high_end_vel),0,r.uniform(low_end_vel,high_end_vel),0,-r.uniform(low_end_vel,high_end_vel)) for q in range(num_init_vels)]
-	#sys.exit(0)
-
-	#inits_blue_test = (0,5,0,5,0,5)
-	solutions_blue_MOT = [odeint(diffeqs_MOT, inits, t, args=(parameters_blue,),mxstep=10**8) for inits in inits_blue]
+    tStop = 0.05
+    t = np.linspace(0., tStop, 2e5)
 
 
-#solution_blue = odeint(diffeqs_MOT, inits_blue_test, t, args=(parameters_blue,),mxstep=10**8)
-#print(solution_blue)
+    num_init_angles = 100
+    low_end_theta = 90 #Angles in degrees for clarity here
+    high_end_theta = 95
+    low_end_phi = 25
+    high_end_phi = 35
 
-	initial_speeds = np.array([np.sqrt(q[1]**2 + q[3]**2 + q[5]**2) for q in inits_blue])
-	final_positions = np.array([np.sqrt(z[-1,0]**2 + z[-1,2]**2 + z[-1,4]**2) for z in solutions_blue_MOT])
-	final_velocities = np.array([np.sqrt(v[-1,1]**2 + v[-1,3]**2 + v[-1,5]**2) for v in solutions_blue_MOT])
+    # the atom starts in the center of the short ZS tube, right at its exit
+    inits_blue = [(-0.0866,init_speed*sin(r.uniform(low_end_theta,high_end_theta)*pi/180)*cos(r.uniform(low_end_phi,high_end_phi)*pi/180),\
+        -0.05,init_speed*sin(r.uniform(low_end_theta,high_end_theta)*pi/180)*sin(r.uniform(low_end_phi,high_end_phi)*pi/180),\
+        0,init_speed*cos(r.uniform(low_end_theta,high_end_theta)*pi/180)) for q in range(num_init_angles)]
 
-	num_captured = final_positions[np.where(final_positions < 0.05)].size
-	captured_atoms.append(num_captured)
-#print(np.array(final_positions) - np.array(final_velocities))
+    solutions_blue_MOT = [odeint(diffeqs_MOT, inits, t, args=(parameters_blue,),mxstep=10**8) for inits in inits_blue]
 
-plt.scatter(detuning_fraction,captured_atoms)
-plt.show()
-sys.exit(0)
+    final_positions = np.array([np.sqrt(z[-1,0]**2 + z[-1,2]**2 + z[-1,4]**2) for z in solutions_blue_MOT])
+    #final_velocities = np.array([np.sqrt(v[-1,1]**2 + v[-1,3]**2 + v[-1,5]**2) for v in solutions_blue_MOT])
 
+    num_captured = final_positions[np.where(final_positions < 0.05)].size
+    captured_atoms.append(num_captured)
+
+#turn them into a numpy array for easier saving and calculate the fraction
+captured_atoms_fraction = np.array(captured_atoms)/num_init_angles
+
+file_description = open(simulation_dir_fullpath+"/"+"simInfo.txt","w")
+#file_results = open(simulation_dir_fullpath+"/"+"results.txt","w")
+
+file_description.write("Data going into the simulation in this folder: \n")
+file_description.write("Detuning: -{:2f} blueGamma \n power X-beam: {:.4f} W \n power Y-beam: {:.4f} W \n power Z-beam: {:.4f} W \n".format(detuning_blue_gammafraction,bluePowerX,bluePowerY,bluePowerZ))
+file_description.write("Beam radius W_x: {:.4f} m \n Beam radius W_y: {:.4f} m \n Beam radius W_z: {:.4f} m \n".format(blueRadX,blueRadY,blueRadZ))
+file_description.write("B-field grad in radial directions: {:.4f} T/m \n".format(blueGradient))
+file_description.write("Initial position: (x,y,z) = (-0.0866,-0.05,0) m , which is the center at the end of the short ZS tube \n")
+file_description.write("Initial velocities: (vx,vy,vz) = (init_speed*sin(theta)cos(phi),init_speed*sin(theta)sin(phi),init_speed*cos(theta)) m/s \n"+\
+                         "where theta is taken from a uniform random distribution [{:d} deg, {:d} deg] and phi from a uniform random distribution [{:d} deg, {:d} deg] \n".format(low_end_theta,high_end_theta,low_end_phi,high_end_phi))
+
+file_description.close()
+
+np.savetxt(simulation_dir_fullpath+"/"+"results.txt", (initial_speeds,captured_atoms_fraction),header="Row 0: initial speeds of the atoms [m/s], Row 1: fraction of atoms captured (between 0 and 1), out of {:d}".format(num_init_angles))
 
 plt.figure(1)
-plt.subplot(2,1,1)
-plt.scatter(initial_speeds,final_positions)
+plt.subplot(1,1,1)
+plt.scatter(initial_speeds,captured_atoms_fraction)
 #plt.title("Final positions")
 plt.xlabel("Initial speed [m/s]")
-plt.ylabel("Final position [m]")
-plt.ylim(0,2)
-plt.subplot(2,1,2)
-plt.scatter(initial_speeds,final_velocities)
-#plt.title("Final speeds")
-plt.xlabel("Initial speed [m/s]")
-plt.ylabel("Final speed [m/s]")
-plt.ylim(0,2)
-
+plt.ylabel("Fraction of captured atoms")
+plt.savefig(simulation_dir_fullpath+"/"+"figure.png")
 plt.show()
+
+
+
+#print(np.array(final_positions) - np.array(final_velocities))
+
+# plt.scatter(detuning_fraction,captured_atoms)
+# plt.show()
+# sys.exit(0)
+
+# plt.figure(1)
+# plt.subplot(2,1,1)
+# plt.scatter(initial_speeds,final_positions)
+# #plt.title("Final positions")
+# plt.xlabel("Initial speed [m/s]")
+# plt.ylabel("Final position [m]")
+# plt.ylim(0,2)
+# plt.subplot(2,1,2)
+# plt.scatter(initial_speeds,final_velocities)
+# #plt.title("Final speeds")
+# plt.xlabel("Initial speed [m/s]")
+# plt.ylabel("Final speed [m/s]")
+# plt.ylim(0,2)
+
+# plt.show()
+
+
+
+### =============== Tests for a sinle initial condition, plotting entire trajectories ================
+# parameters_blue = [kVecBlue,blueGamma,blueIsat,bluePowerX,bluePowerY,bluePowerZ, \
+#                         blueRadX,blueRadY,blueRadZ,blueGradient,detuning_blue]
+
+
+# tStop = 0.05
+# t = np.linspace(0., tStop, 2e5)
+
+# speed = 100
+# inits_blue_test = (-1*0.0866,speed*sin(91*pi/180)*cos(31*pi/180),-1*0.05,speed*sin(91*pi/180)*sin(31*pi/180),0,speed*cos(91*pi/180))
+
+# solution_blue = odeint(diffeqs_MOT, inits_blue_test, t, args=(parameters_blue,),mxstep=10**8)
+# print(solution_blue)
+    
+# # plt.plot(t,np.sqrt(solution_blue[:,0]**2 + solution_blue[:,2]**2 + solution_blue[:,4]**2),label="pos")
+# # plt.plot(t,np.sqrt(solution_blue[:,1]**2 + solution_blue[:,3]**2 + solution_blue[:,5]**2))
+# plt.plot(t,solution_blue[:,1],label="vx")
+# plt.plot(t,solution_blue[:,3],label="vy")
+# plt.plot(t,solution_blue[:,5],label="vz")
+# plt.legend()
+# plt.show()
+
+# plt.plot(t,solution_blue[:,0],label="x")
+# plt.plot(t,solution_blue[:,2],label="y")
+# plt.plot(t,solution_blue[:,4],label="z")
+# plt.legend()
+# plt.show()
+
+
+
+# 
 
 
 # fig = plt.figure()
@@ -136,18 +219,5 @@ plt.show()
 # plt.show()
 # sys.exit(0)
 
-#plt.plot(t,np.sqrt(solution_blue[:,0]**2 + solution_blue[:,2]**2 + solution_blue[:,4]**2),label="pos")
-#plt.plot(t,np.sqrt(solution_blue[:,1]**2 + solution_blue[:,3]**2 + solution_blue[:,5]**2))
-# plt.plot(t,solution_blue[:,1],label="vx")
-# plt.plot(t,solution_blue[:,3],label="vy")
-# plt.plot(t,solution_blue[:,5],label="vz")
-# plt.legend()
-# plt.show()
-
-# plt.plot(t,solution_blue[:,0],label="x")
-# plt.plot(t,solution_blue[:,2],label="y")
-# plt.plot(t,solution_blue[:,4],label="z")
-# plt.legend()
-# plt.show()
 
 
