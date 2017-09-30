@@ -1,95 +1,8 @@
-@@ -0,0 +1,361 @@
-import numpy as np 
-import scipy as sp 
-import matplotlib.pyplot as plt
-import profile
-import h5py
-import tables #this is PyTables to use HDF5 for Python 
-import sys
-
-from scipy.integrate import odeint 
-from numpy.random import random_sample, uniform
-from mpl_toolkits.mplot3d import Axes3D
-
-from pyConstants import *
-from SrConstants import * 
-
-def MOT_force(k_laser,linewidth,sat_param,velocity,B_gradient,position,detunings_list):
-    delta_min = [detuning - k_laser*velocity - (muBohr*B_gradient*position/hbar) for detuning in detunings_list]
-    delta_plus = [detuning + k_laser*velocity + (muBohr*B_gradient*position/hbar) for detuning in detunings_list]
-    force_list = [(hbar*k_laser*linewidth*sat_param/2)*(1/(1+sat_param*(2*delta_min[q]/linewidth)**2) - \
-        1/(1+sat_param*(2*delta_plus[q]/linewidth)**2)) for q in range(len(delta_min))]
-    return np.sum(force_list)
-
-def diffeqs_MOT(variables,t,params):
-    (x,vx,y,vy,z,vz) = variables
-    (laserPowerX,laserPowerY,laserPowerZ,beamWaistRadX,beamWaistRadY,beamWaistRadZ,B_gradient,detunings_list) = params
-
-
-    gaussian_Xbeam = np.exp((-2*x**2)/beamWaistRadX**2)*(2*laserPowerX)/(np.pi*(beamWaistRadX**2))
-    gaussian_Ybeam = np.exp((-2*y**2)/beamWaistRadY**2)*(2*laserPowerY)/(np.pi*(beamWaistRadY**2))
-    gaussian_Zbeam = np.exp((-2*z**2)/beamWaistRadZ**2)*(2*laserPowerZ)/(np.pi*(beamWaistRadZ**2))
-
-
-    derivs = [vx,(1/mSr88)*MOT_force(kVecRed,redGamma,gaussian_Xbeam/redIsat,vx,B_gradient,x,detunings_list),\
-            vy,(1/mSr88)*MOT_force(kVecRed,redGamma,gaussian_Ybeam/redIsat,vy,B_gradient,y,detunings_list),\
-            vz,(1/mSr88)*MOT_force(kVecRed,redGamma,gaussian_Zbeam/redIsat,vz,-2*B_gradient,z,detunings_list) - 9.81]
-
-    # Quadrupole field from: 
-    # https://www2.physics.ox.ac.uk/sites/default/files/2013-01-19/minsung_pdf_16672.pdf eq. 2.40
-    return derivs
-
-
-# def diffeqs_blue(variables,t,params):
-#     (x,vx,y,vy,z,vz) = variables
-#     (laserPowerX,laserPowerY,laserPowerZ,beamWaistRadX,beamWaistRadY,beamWaistRadZ,B_gradient,detunings_list) = params
-
-
-#     gaussian_Xbeam = np.exp((-2*x**2)/beamWaistRadX**2)*(2*laserPowerX)/(np.pi*(beamWaistRadX**2))
-#     gaussian_Ybeam = np.exp((-2*y**2)/beamWaistRadY**2)*(2*laserPowerY)/(np.pi*(beamWaistRadY**2))
-#     gaussian_Zbeam = np.exp((-2*z**2)/beamWaistRadZ**2)*(2*laserPowerZ)/(np.pi*(beamWaistRadZ**2))
-
-
-#     derivs = [vx,(1/mSr88)*MOT_force(kVecBlue,blueGamma,gaussian_Xbeam/blueIsat,vx,B_gradient,x,detunings_list),\
-#             vy,(1/mSr88)*MOT_force(kVecBlue,blueGamma,gaussian_Ybeam/blueIsat,vz,B_gradient,y,detunings_list),\
-#             vz,(1/mSr88)*MOT_force(kVecBlue,blueGamma,gaussian_Zbeam/blueIsat,vz,-2*B_gradient,z,detunings_list)]
-#     return derivs
+################
+# This will not run "as is"! This is just to have the old code not get lost and be reused by copy-paste if necessary
 
 
 
-
-
-# Simulation parameters
-
-detunings_blue = [-blueGamma]
-#detunings_red = [-2*np.pi*200*10**3]
-
-# num_redCombLines = 50
-# detunings_red = np.linspace(-2*np.pi*200*10**3,-2*np.pi*5*10**6,num_redCombLines)
-
-
-# This is the simulation for red, let's disregard the blue for now
-
-bluePowerX = bluePowerY = bluePowerZ = 10*10**-3
-blueRadX = blueRadY = blueRadZ = 10*10**-3
-blueGradient = 0.55 # T/m = 55 G/cm
-
-# redPowerXtotal = redPowerYtotal = redPowerZtotal = 10*10**-3
-# redPowerX = redPowerY = redPowerZ = redPowerXtotal/num_redCombLines
-# redRadX = redRadY = redRadZ = 3*10**-3
-# redGradient = 1.15/100 # T/m 
-
-parameters_blue = [bluePowerX,bluePowerY,bluePowerZ,blueRadX,blueRadY,blueRadZ,blueGradient,detunings_blue]
-# parameters_red = [redPowerX,redPowerY,redPowerZ,redRadX,redRadY,redRadZ,redGradient,detunings_red]
-
-
-
-tStop = 0.5
-t = np.linspace(0., tStop, 10**5)
-
-
-
-solution_blue = odeint(diffeqs_MOT, inits, t, args=(parameters_blue,),mxstep=10**8)
 
 position_pts_xy = 5 # number of random starting positions to check
 position_pts_z = 7
@@ -283,21 +196,6 @@ sys.exit(0)
 
 
 
-# THIS IS THE OLD WAY TO SAVE USING h5py 
-# DISREGARD FOR NOW
-
-# dset_zplus_data = grp.create_dataset("zplus3_data",(len(initialconds_red),6))
-# dset_zplus_inits = grp.create_dataset("zplus3_inits",(len(initialconds_red),6))
-
-# grp.attrs["gradTperM"] = redGradient 
-# dset_zplus_data.attrs["powXWatts"] = redPowerX
-# dset_zplus_data.attrs["powYWatts"] = redPowerY
-# dset_zplus_data.attrs["powZWatts"] = redPowerZ
-# dset_zplus_data.attrs["radXMeters"] = redRadX
-# dset_zplus_data.attrs["radYMeters"] = redRadY
-# dset_zplus_data.attrs["radZMeters"] = redRadZ
-# dset_zplus_data.attrs["detuningsHz"] = detunings_red
-
 
 def simulation_func_red(initialconds,parameters_red,t):
     solutions = []
@@ -360,4 +258,3 @@ sols = simulation_func_red(initialconds_red,parameters_red,t)
 
 # plt.tight_layout()
 # plt.show()
-\ No newline at end of file
