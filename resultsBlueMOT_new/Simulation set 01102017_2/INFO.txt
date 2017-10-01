@@ -1,0 +1,2 @@
+Note: These simulations are done with the same beams as the ones in Simulation set 01102017_1
+but now the beams are purely Gaussian, there’s no hard cutoff at the actual radius of the viewports

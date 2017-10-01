@@ -1,0 +1,2 @@
+Note! These simulations are with a hard cutoff for the beam at rad = 19 mm for side viewports 
+and rad = 24 mm for vertical viewports
